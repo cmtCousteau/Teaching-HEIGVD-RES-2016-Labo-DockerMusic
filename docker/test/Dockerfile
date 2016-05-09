@@ -6,6 +6,6 @@ MAINTAINER Olivier Liechti <olivier.liechti@heig-vd.ch>
 #
 COPY src /opt/app/
 
-RUN npm install uuid-v4
+EXPOSE 2205
 
-ENTRYPOINT ["node", "/opt/app/musician.js"]
+ENTRYPOINT ["node", "/opt/app/server.js"]
