@@ -32,6 +32,24 @@ var mapObj = new Map();
 var net = require('net');
 
 
+// Start a TCP Server
+net.createServer(function (client) {
+
+	// Identify this client
+	client.name = client.remoteAddress + ":" + client.remotePort 
+	mapObj.forEach(function (musician, key, mapObj) {
+		var measure = {
+			uuid: musician.uuid,
+			sound: musician.sound,
+			activeSince: musician.activeSince
+		};
+		client.write(JSON.stringify(measure) + "\n");
+	})
+}).listen(2205);
+
+
+
+
 // Musician  constructor
 var Musician = function (uuid, sound, activeSince, lastEmission) {
 	this.uuid = uuid;
@@ -71,7 +89,6 @@ function CheckMap(instrumentType) {
 	 * We check every 1000 ms.
 	 */
 	setInterval(this.update.bind(this), 1000);
-
 }
 
 var checkMap = new CheckMap();
@@ -112,6 +129,5 @@ s.on('message', function(msg, source) {
 		console.log(obj.activeSince);*/
 	}
 	
-
 });
 
