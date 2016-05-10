@@ -1,22 +1,18 @@
 /*
- This program simulates a "data collection station", which joins a multicast
- group in order to receive measures published by thermometers (or other sensors).
- The measures are transported in json payloads with the following format:
 
-   {"timestamp":1394656712850,"location":"kitchen","temperature":22.5}
+ Author : Monzione Marco - Zharkova Anastasia
+ 
+ Inspired from : https://hub.docker.com/r/oliechti/thermometer/
 
- Usage: to start the station, use the following command in a terminal
 
-   node station.js
-
+ This program listen for musician that are "playing". Every active musician
+ send an UDP datagram containing his ID,soud, and when he started playing. This
+ program store all active musician in a map. It listen too on a TCP port for
+ telnet connexion. When a client connect to TCP, the program send in JSON format
+ all the musician which are in the map.
 */
 
-/*
- * We have defined the multicast address and port in a file, that can be imported both by
- * thermometer.js and station.js. The address and the port are part of our simple 
- * application-level protocol
- */
-var protocol = require('./sensor-protocol');
+var protocol = require('./auditor-protocol');
 
 /*
  * We use a standard Node.js module to work with UDP
@@ -27,7 +23,6 @@ var dgram = require('dgram');
 var mapObj = new Map();
 
 
-
 // TCP server
 var net = require('net');
 
@@ -35,20 +30,23 @@ var net = require('net');
 // Start a TCP Server
 net.createServer(function (client) {
 
-	// Identify this client
+	// Keep the client info.
 	client.name = client.remoteAddress + ":" + client.remotePort 
+	// Send in JSON format the info of all active musicians.
 	mapObj.forEach(function (musician, key, mapObj) {
-		var measure = {
+		
+		date = new Date(musician.activeSince);
+		
+		var musicianInfo = {
 			uuid: musician.uuid,
-			sound: musician.sound,
-			activeSince: musician.activeSince
+			sound: musician.instrumentType,
+			activeSince: date.getFullYear() + "-" + (date.getMonth()+1) + "-" + date.getDate() + "T" + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() + "." + date.getMilliseconds() + "Z"
 		};
-		client.write(JSON.stringify(measure) + "\n");
+		client.write(JSON.stringify(musicianInfo));
 	})
-}).listen(2205);
-
-
-
+	client.destroy();
+	
+}).listen(protocol.TELNET_PORT);
 
 // Musician  constructor
 var Musician = function (uuid, sound, activeSince, lastEmission) {
@@ -56,11 +54,31 @@ var Musician = function (uuid, sound, activeSince, lastEmission) {
 	this.sound = sound;
 	this.activeSince = activeSince;
 	this.lastEmission = lastEmission;
+	
+	switch(sound) {
+    case "ti-ta-ti":
+        this.instrumentType = "piano"
+        break;
+    case "pouet":
+        this.instrumentType = "trumpet"
+        break;
+	case "trulu":
+        this.instrumentType = "flute"
+        break;
+    case "gzi-gzi":
+        this.instrumentType = "violin"
+        break;
+    case "boum-boum":
+        this.instrumentType = "drum"
+        break;		
+    default:
+        this.instrumentType = "unknow"
+		break;
+	}
 }
 
-
-
-
+// Check every 1000 ms if all the musician in the map are still active. If
+// not remove them from the map.
 function CheckMap(instrumentType) {
 
 	CheckMap.prototype.update = function() {
@@ -73,41 +91,27 @@ function CheckMap(instrumentType) {
 			// If the musician has not played since 5 seconds we remove it from the map.
 			if(tmp > 5){
 				mapObj.delete(key);
+				console.log("Musician leaving : " + musician.uuid + " | " + musician.sound);
 			}
-			
-			/*var newDate = new Date();
-			var dateString;
-			dateString = newDate.getMonth();*/
-
-			
-			console.log(musician.uuid + " " + musician.sound + "Difference : " + tmp);
+			//console.log(musician.uuid + " " + musician.sound + "Difference : " + tmp);
 		});
-
 	}
-
-	/*
-	 * We check every 1000 ms.
-	 */
+	// We check every 1000 ms.
 	setInterval(this.update.bind(this), 1000);
 }
 
 var checkMap = new CheckMap();
 
-/* 
- * Let's create a datagram socket. We will use it to listen for datagrams published in the
- * multicast group by thermometers and containing measures
- */
+
+// Let's create a datagram socket. listen the datagram sended by the musicians.
 var s = dgram.createSocket('udp4');
 s.bind(protocol.PROTOCOL_PORT, function() {
   console.log("Joining multicast group");
   s.addMembership(protocol.PROTOCOL_MULTICAST_ADDRESS);
 });
 
-/* 
- * This call back is invoked when a new datagram has arrived.
- */
+// This call back is invoked when a new datagram has arrived.
 s.on('message', function(msg, source) {
-	//console.log("Data has arrived: " + msg + ". Source port: " + source.port);
 	
 	var json = msg,
     obj = JSON.parse(json);
@@ -116,17 +120,11 @@ s.on('message', function(msg, source) {
 	if(mapObj.has(obj.uuid)){
 		// If the musician is already in the map we refresh is lastEmission time.
 		mapObj.get(obj.uuid).lastEmission = Date.now();
-		//musician.lastEmission = Date.now();
-		//console.log(mapObj.get(obj.uuid).lastEmission);
 	}
 	else{
-		
 		// If the musician is not already in the map we add it to the map.
 		mapObj.set(obj.uuid, new Musician(obj.uuid, obj.sound, obj.activeSince, Date.now()));
-		
-		/*console.log(obj.uuid);
-		console.log(obj.sound);
-		console.log(obj.activeSince);*/
+		console.log("New musician : " + obj.uuid + " | " + obj.sound);
 	}
 	
 });

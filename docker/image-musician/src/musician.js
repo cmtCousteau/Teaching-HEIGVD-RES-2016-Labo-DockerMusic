@@ -1,46 +1,33 @@
 /*
- This program simulates a "smart" thermometer, which publishes the measured temperature
- on a multicast group. Other programs can join the group and receive the measures. The
- measures are transported in json payloads with the following format:
-
-   {"timestamp":1394656712850,"location":"kitchen","temperature":22.5}
-
- Usage: to start a thermometer, type the following command in a terminal
-        (of course, you can run several thermometers in parallel and observe that all
-        measures are transmitted via the multicast group):
-
-   node thermometer.js location temperature variation
+  Author : Monzione Marco - Zharkova Anastasia
+ 
+ Inspired from : https://hub.docker.com/r/oliechti/thermometer/
+ 
+ This program create a musician. From the received parameter it create the corresponding instrument.
+ After that it send every 1000 ms a datagram with the info the musician.
 
 */
 
-var protocol = require('./sensor-protocol');
+var protocol = require('./musician-protocol');
 
-/*
- * We use a standard Node.js module to work with UDP
- */
+
+// We use a standard Node.js module to work with UDP
 var dgram = require('dgram');
 
-/*
- * Let's create a datagram socket. We will use it to send our UDP datagrams 
- */
+
+// Let's create a datagram socket. We will use it to send our UDP datagrams 
 var s = dgram.createSocket('udp4');
 
-
-
+// Used to create a GUI.
 var uuid = require('uuid-v4');
 
 
-
-
-/*
- * Let's define a javascript class for our thermometer. The constructor accepts
- * a location, an initial temperature and the amplitude of temperature variation
- * at every iteration
- */
-function Thermometer(instrumentType) {
+// Class used to create a musician.
+function Musician(instrumentType) {
 
 	this.instrumentType = instrumentType;
 	
+	// Create to the instrument correspopnding to the received parameter.
 	switch(instrumentType) {
     case "piano":
         this.sound = "ti-ta-ti"
@@ -63,53 +50,34 @@ function Thermometer(instrumentType) {
 	}
 	this.uuid = uuid();
 	this.activeSince = Date.now();
-	
 
-/*
-   * We will simulate temperature changes on a regular basis. That is something that
-   * we implement in a class method (via the prototype)
-   */
-	Thermometer.prototype.update = function() {
-/*
-	  * Let's create the measure as a dynamic javascript object, 
-	  * add the 3 properties (timestamp, location and temperature)
-	  * and serialize the object to a JSON string
-	  */
-		var measure = {
+    
+	Musician.prototype.update = function() {
+
+		// Create an object with the info of the musician, serialize the info with json and send them with UDP.
+		var musicianInfo = {
 			uuid: this.uuid,
 			sound: this.sound,
 			activeSince: this.activeSince
 		};
-		var payload = JSON.stringify(measure);
+		var payload = JSON.stringify(musicianInfo);
 
-/*
-	   * Finally, let's encapsulate the payload in a UDP datagram, which we publish on
-	   * the multicast address. All subscribers to this address will receive the message.
-	   */
+	   // Finally, let's encapsulate the payload in a UDP datagram, which we publish on
+	   // the multicast address. All subscribers to this address will receive the message.
 		message = new Buffer(payload);
 		s.send(message, 0, message.length, protocol.PROTOCOL_PORT, protocol.PROTOCOL_MULTICAST_ADDRESS, function(err, bytes) {
 			console.log("Sending payload: " + payload + " via port " + s.address().port);
 		});
-
 	}
 
-	/*
-	 * Let's take and send a measure every 1000 ms
-	 */
+	// Send the musician info very 1000 ms.
 	setInterval(this.update.bind(this), 1000);
 
 }
 
-/*
- * Let's get the thermometer properties from the command line attributes
- * Some error handling wouln't hurt here...
- */
+// Get the instrument type from the first parameter passed to the container.
 var instrumentType = process.argv[2];
 
-//var temp = parseInt(process.argv[3]);
 
-/*
- * Let's create a new thermoter - the regular publication of measures will
- * be initiated within the constructor
- */
-var t1 = new Thermometer(instrumentType);
+// Create a new musician.
+var musician = new Musician(instrumentType);
