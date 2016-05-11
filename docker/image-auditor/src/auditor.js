@@ -40,7 +40,8 @@ net.createServer(function (client) {
 		var musicianInfo = {
 			uuid: musician.uuid,
 			sound: musician.instrumentType,
-			activeSince: date.getFullYear() + "-" + (date.getMonth()+1) + "-" + date.getDate() + "T" + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() + "." + date.getMilliseconds() + "Z"
+			//activeSince: date.getFullYear() + "-" + (date.getMonth()+1) + "-" + date.getDate() + "T" + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() + "." + date.getMilliseconds() + "Z"
+		    activeSince: musician.activeSince
 		};
 		client.write(JSON.stringify(musicianInfo));
 	})
@@ -93,7 +94,7 @@ function CheckMap(instrumentType) {
 				mapObj.delete(key);
 				console.log("Musician leaving : " + musician.uuid + " | " + musician.sound);
 			}
-			//console.log(musician.uuid + " " + musician.sound + "Difference : " + tmp);
+			console.log(musician.uuid + " " + musician.sound + "Difference : " + tmp);
 		});
 	}
 	// We check every 1000 ms.
@@ -119,7 +120,7 @@ s.on('message', function(msg, source) {
 	
 	if(mapObj.has(obj.uuid)){
 		// If the musician is already in the map we refresh is lastEmission time.
-		mapObj.get(obj.uuid).lastEmission = Date.now();
+		mapObj.get(obj.uuid).lastEmission = Date.now();// use a timeStamp to get the time in ms (only used to know if the musician is still active).
 	}
 	else{
 		// If the musician is not already in the map we add it to the map.

@@ -49,7 +49,7 @@ function Musician(instrumentType) {
 		break;
 	}
 	this.uuid = uuid();
-	this.activeSince = Date.now();
+	this.activeSince = new Date();
 
     
 	Musician.prototype.update = function() {
