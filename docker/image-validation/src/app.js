@@ -103,6 +103,7 @@ function compareAuditorStateAgainstRunningContainers( checkDone ) {
 			 * be the same as what is seen by the auditor. If that's not true, then we will get an error and the
 			 * program will terminate.
 			 */
+
 			expect(instrumentsSeenInDocker).to.eql(instrumentsSeenByAuditor);
 			console.log("Auditor validation: success: " + JSON.stringify(instrumentsSeenByAuditor));
 			checkDone( null, "Auditor validation: success");
