@@ -33,7 +33,7 @@ net.createServer(function (client) {
 	// Keep the client info.
 	client.name = client.remoteAddress + ":" + client.remotePort
 	
-	var mapMusicianTmp = [];
+	var tabMusicianTmp = [];
 	// Send in JSON format the info of all active musicians.
 	mapObj.forEach(function (musician, key, mapObj) {
 		
@@ -44,10 +44,10 @@ net.createServer(function (client) {
 			instrument: musician.instrumentType,
 		    activeSince: musician.activeSince
 		};
-		mapMusicianTmp.push(musicianInfo);
+		tabMusicianTmp.push(musicianInfo);
 	})
 	
-	client.write(JSON.stringify(mapMusicianTmp));
+	client.write(JSON.stringify(tabMusicianTmp));
 	client.destroy();
 	
 }).listen(protocol.TELNET_PORT);
